@@ -5,28 +5,30 @@ HeptaCom    com;
 HeptaEps    eps;
 HeptaSensor sensor;
 
-// Two separate thresholds prevent chattering when voltage hovers near the boundary
-const float VOLTAGE_TURN_OFF = 3.7;
-const float VOLTAGE_TURN_ON  = 3.9;
+// Bus-voltage thresholds for the 3V3 load switch (V4.1.1 get_bus_voltage).
+// Hysteresis avoids chatter; validate on hardware if bus behaviour differs from old VBAT.
+const float BUS_VOLTAGE_TURN_OFF = 3.7;
+const float BUS_VOLTAGE_TURN_ON  = 3.9;
 
 bool sw3V3_is_on = true;
 
 void downlink_hk_data(void) {
   float temp = sensor.get_temperature();
-  float vbat = eps.get_battery_voltage();
+  float bus_voltage = eps.get_bus_voltage();
   float v5 = eps.get_5v_voltage();
   float v3v3 = eps.get_3v3_voltage();
   float sap = eps.get_sap_voltage();
-  float idis = eps.get_current_discharge();
+  float isol = eps.get_current_solar();
+  float ibus = eps.get_current_bus();
   float ichg = eps.get_current_charge();
 
   com.printf(
-    "TEMP=%.2f,VBAT=%.3f,V5=%.3f,V3V3=%.3f,SAP=%.3f,IDIS=%.3f,ICHG=%.3f\r\n",
-    temp, vbat, v5, v3v3, sap, idis, ichg);
+    "TEMP=%.2f,BUS=%.3f,V5=%.3f,V3V3=%.3f,SAP=%.3f,ISOL=%.3f,IBUS=%.3f,ICHG=%.3f\r\n",
+    temp, bus_voltage, v5, v3v3, sap, isol, ibus, ichg);
 
   cdh.printf(
-    "HK: TEMP=%.2f C, VBAT=%.3f V, V5=%.3f V, V3V3=%.3f V, SAP=%.3f V, IDIS=%.3f A, ICHG=%.3f A\r\n",
-    temp, vbat, v5, v3v3, sap, idis, ichg);
+    "HK: TEMP=%.2f C, BUS=%.3f V, V5=%.3f V, V3V3=%.3f V, SAP=%.3f V, ISOL=%.3f A, IBUS=%.3f A, ICHG=%.3f A\r\n",
+    temp, bus_voltage, v5, v3v3, sap, isol, ibus, ichg);
 }
 
 void setup() {
@@ -40,13 +42,13 @@ void setup() {
 void loop() {
   downlink_hk_data();
 
-  float battery_voltage = eps.get_battery_voltage();
-  if (sw3V3_is_on && battery_voltage < VOLTAGE_TURN_OFF) {
-    com.println("Battery voltage is low! Switching off 3.3V SW to save power.");
+  float bus_voltage = eps.get_bus_voltage();
+  if (sw3V3_is_on && bus_voltage < BUS_VOLTAGE_TURN_OFF) {
+    com.println("Bus voltage is low! Switching off 3.3V SW to save power.");
     eps.switch_3V3_off();
     sw3V3_is_on = false;
-  } else if (!sw3V3_is_on && battery_voltage > VOLTAGE_TURN_ON) {
-    com.println("Battery voltage recovered. Switching on 3.3V SW.");
+  } else if (!sw3V3_is_on && bus_voltage > BUS_VOLTAGE_TURN_ON) {
+    com.println("Bus voltage recovered. Switching on 3.3V SW.");
     eps.switch_3V3_on();
     sw3V3_is_on = true;
   } else {
@@ -74,8 +76,8 @@ void loop() {
           File file = cdh.create_file("test.txt");
           if (file) {
             for(uint8_t i = 0; i < 10; i++) {
-              float battery_voltage = eps.get_battery_voltage();
-              cdh.printf_file(file, "Battery Voltage: %f V\r\n", battery_voltage);
+              float bus_voltage = eps.get_bus_voltage();
+              cdh.printf_file(file, "Bus voltage: %f V\r\n", bus_voltage);
               delay(1000);
             }
             file.close();
