@@ -6,7 +6,7 @@ Reference firmware for Lab5-06: HK downlink, battery-aware 3.3 V switching, and 
 
 Open in **Chrome or Edge**, then **Add Port** → **Connect** (38400 baud):
 
-**https://hepta-sat-training.github.io/hepta-serial-viewer/**
+**https://hepta-sat-training.github.io/HEPTA-SAT-Serial_Monitor/**
 
 - HK lines appear every second in the output pane.
 - `a` — prints `Hello HEPTA-SAT` ten times (1 s apart).
